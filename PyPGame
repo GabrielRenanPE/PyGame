@@ -1,0 +1,85 @@
+import pygame
+import math
+import sys
+
+# inicializa o pygame
+pygame.init()
+
+# define as dimensões da tela
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# define as cores
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (50, 50, 50)
+
+# define a fonte
+font = pygame.font.Font(None, 36)
+
+# define o cubo
+size = 100
+cube_points = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+cube_lines = [(start, end) for start in range(8) for end in range(start)]
+
+# define os botões
+start_button = pygame.Rect(50, 50, 80, 50)
+stop_button = pygame.Rect(150, 50, 80, 50)
+
+# estado de rotação
+rotating = False
+
+# inicia o jogo
+running = True
+angle = 0
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if start_button.collidepoint(event.pos):
+                    rotating = True
+                elif stop_button.collidepoint(event.pos):
+                    rotating = False
+
+    screen.fill(BLACK)
+
+    # desenha os botões
+    pygame.draw.rect(screen, GRAY, start_button)
+    pygame.draw.rect(screen, GRAY, stop_button)
+
+    # adiciona texto aos botões
+    start_text = font.render('Start', True, BLACK)
+    screen.blit(start_text, (start_button.x + 10, start_button.y + 10))
+    stop_text = font.render('Stop', True, BLACK)
+    screen.blit(stop_text, (stop_button.x + 20, stop_button.y + 10))
+
+    if rotating:
+        # rotaciona o cubo
+        t = pygame.time.get_ticks() / 2000  # this varies between 0 and 1
+        angle = t * math.pi * 2  # this varies between 0 and 2*pi
+        rotation_matrix_y = [[math.cos(angle), 0, math.sin(angle)], [0, 1, 0], [-math.sin(angle), 0, math.cos(angle)]]
+
+        rotated_points = []
+        for point in cube_points:
+            rotated_point = [sum(point[dim] * rotation_matrix_y[dim][i] for dim in range(3)) for i in range(3)]
+            rotated_points.append(rotated_point)
+
+        # projeta o cubo 3D em 2D
+        projection_matrix = [[1, 0], [0, 1]]
+        projected_points = []
+        for point in rotated_points:
+            projected_point = [sum(point[dim] * projection_matrix[dim][i] for dim in range(2)) for i in range(2)]
+            projected_points.append([(d + 1) * size for d in projected_point])
+
+        # desenha o cubo
+        for start, end in cube_lines:
+            start_pos = [WIDTH // 2 + d for d in projected_points[start]]
+            end_pos = [HEIGHT // 2 + d for d in projected_points[end]]
+            pygame.draw.line(screen, WHITE, start_pos, end_pos, 1)
+
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
